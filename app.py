@@ -13,25 +13,34 @@ def index():
 
 @app.route('/download', methods=['POST'])
 def download():
-    url = request.form['url']
-    format_choice = request.form['format']
-    yt = YouTube(url)
-    title = yt.title.replace(" ", "_").replace("/", "_")
+    try:
+        url = request.form['url']
+        format_choice = request.form['format']
+        print(f"Received URL: {url} | Format: {format_choice}")
 
-    if format_choice == 'mp4':
-        stream = yt.streams.get_highest_resolution()
-        file_path = stream.download(output_path=DOWNLOAD_FOLDER, filename=f"{title}.mp4")
-    else:
-        stream = yt.streams.filter(only_audio=True).first()
-        audio_path = stream.download(output_path=DOWNLOAD_FOLDER, filename=f"{title}.mp4")
-        mp3_path = os.path.join(DOWNLOAD_FOLDER, f"{title}.mp3")
+        yt = YouTube(url)
+        title = yt.title.replace(" ", "_").replace("/", "_")
+        print(f"Video title: {title}")
 
-        # Use ffmpeg to convert
-        subprocess.run(['ffmpeg', '-i', audio_path, mp3_path], check=True)
-        os.remove(audio_path)
-        file_path = mp3_path
+        if format_choice == 'mp4':
+            stream = yt.streams.get_highest_resolution()
+            file_path = stream.download(output_path=DOWNLOAD_FOLDER, filename=f"{title}.mp4")
+        else:
+            stream = yt.streams.filter(only_audio=True).first()
+            audio_path = stream.download(output_path=DOWNLOAD_FOLDER, filename=f"{title}.mp4")
+            mp3_path = os.path.join(DOWNLOAD_FOLDER, f"{title}.mp3")
 
-    return send_file(file_path, as_attachment=True)
+            print(f"Converting {audio_path} to {mp3_path} using ffmpeg")
+            subprocess.run(['ffmpeg', '-y', '-i', audio_path, mp3_path], check=True)
+            os.remove(audio_path)
+            file_path = mp3_path
+
+        print(f"Sending file: {file_path}")
+        return send_file(file_path, as_attachment=True)
+    except Exception as e:
+        print("ERROR:", str(e))  # This will show in Render logs
+        return "Internal Server Error", 500
+
 
 if __name__ == '__main__':
     import os
