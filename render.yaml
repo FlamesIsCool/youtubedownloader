@@ -1,6 +1,6 @@
 services:
   - type: web
-    name: youtube-downloader
+    name: yt-downloader
     env: python
     buildCommand: pip install -r requirements.txt
     startCommand: python app.py
