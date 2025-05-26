@@ -1,7 +1,7 @@
 from flask import Flask, render_template, request, send_file
 from pytube import YouTube
 import os
-from moviepy.editor import AudioFileClip
+import subprocess
 
 app = Flask(__name__)
 DOWNLOAD_FOLDER = "downloads"
@@ -25,11 +25,15 @@ def download():
         stream = yt.streams.filter(only_audio=True).first()
         audio_path = stream.download(output_path=DOWNLOAD_FOLDER, filename=f"{title}.mp4")
         mp3_path = os.path.join(DOWNLOAD_FOLDER, f"{title}.mp3")
-        AudioFileClip(audio_path).write_audiofile(mp3_path)
+
+        # Use ffmpeg to convert
+        subprocess.run(['ffmpeg', '-i', audio_path, mp3_path], check=True)
         os.remove(audio_path)
         file_path = mp3_path
 
     return send_file(file_path, as_attachment=True)
 
 if __name__ == '__main__':
-    app.run(debug=True)
+    import os
+    port = int(os.environ.get("PORT", 5000))
+    app.run(host='0.0.0.0', port=port)
